@@ -8,6 +8,54 @@ All notable changes to this project, in reverse chronological order. Format base
 - Web push (needs a service worker — see the PWA note in `0.12.0`)
 - Phase 2: SMS (MSG91) + WhatsApp (Meta)
 
+## [0.14.0] - 2026-10-12 — Flour Mill: payment reminders, order details, new landing
+
+### Renamed to "Flour Mill"
+- One name everywhere: page titles, PWA manifest (`short_name` "Flour Mill"),
+  login screens, sidebar, customer header, README. Single source:
+  `src/lib/brand.ts` (`APP_NAME`).
+- A Settings row still holding an old default name ("Feed and Flour
+  Management" etc., `LEGACY_APP_NAMES`) reads back as "Flour Mill"; a name the
+  owner typed themselves is kept.
+
+### Payment reminders (उधारी आठवण) — client requirement §6 / §8
+- Outstanding page now opens with **Dues by customer**: each customer's total,
+  the owing order numbers, when they were last reminded, a "Remind" button per
+  row and "Remind everyone".
+- `POST /api/owner/notifications/reminders` (`{ customerIds? }`, empty = all
+  who owe). CSRF + rate-limited + audited (`notifications.paymentReminder`).
+  Amounts are recomputed server-side from the orders, never taken from the
+  client; deactivated customers are skipped; a customer reminded in the last
+  6 hours is skipped (`REMINDER_COOLDOWN_MS`) so double taps never nag twice;
+  honours the in-app notifications switch in Settings.
+- New `paymentReminder` notification type; the customer sees a private
+  bilingual message with their own amount and order numbers.
+
+### Order details page — client requirement §11
+- `/owner/orders/<order no.>`: customer (tap to call), grain / size / weight /
+  rate / total, a paid-vs-total bar with every receipt, the full status journey
+  with times, and actions — next step, collect payment, send reminder, receipt,
+  cancel. Order numbers on the queue, payments, outstanding and dashboard now
+  link here.
+- Status times: a step the order has not reached never shows a time (owner
+  page and the customer's "Times" list).
+
+### Landing page
+- Hand-drawn चक्की illustration (grains falling, flour pouring — stops under
+  `prefers-reduced-motion`), grain ribbon, 3-step "How it works", a phone
+  mock of the customer screen, the owner panel and a final call to action.
+- **Live data from Settings**: milling rate card (₹/kg by grain × fineness),
+  mill name, phone (tap to call) and address — the page is always the mill's
+  own current information. Everything shown as a picture is labelled "Example".
+- Fixed a mobile overflow: single-column grids now use `grid-cols-1` so a wide
+  child can't stretch the page past the screen.
+
+### Tests
+- Round-trip section 25 (13 assertions): reminder auth/CSRF, validation,
+  server-side amount, order number in the message, cooldown (no duplicate),
+  no-due skip, audit; details page 200 / 404 / anonymous redirect; self-cleaning
+  (real reminders inside the cooldown window are parked and restored).
+
 ## [0.13.0] - 2026-10-12 — "Chakki" visual redesign
 
 UI only — no API, schema or business-logic change (only new `cust.*` i18n keys).
@@ -35,6 +83,16 @@ UI only — no API, schema or business-logic change (only new `cust.*` i18n keys
   "Paid in full" stamp) split into Current / Past orders.
 - Order progress is a 4-stop stepper with readable 13px words and ticks.
 - Notifications open on the newest 5 with "Show all".
+
+### Landing page
+- Rebuilt in the new theme and fully bilingual (follows the `lang` cookie).
+- Removed claims the app does not support: scale sync / "99.9% accuracy",
+  biometric login, offline sync, SMS / WhatsApp alerts, OTP login and a
+  placeholder support number. Only real features are listed now.
+- Hero shows a labelled example order slip; a "How it works" (3 steps),
+  features and owner panel follow.
+- The mobile-number box now really carries over: `/my/login?mobile=…`
+  pre-fills the customer login (digits only, max 10).
 
 ### Owner
 - Shared `AuthShell` login layout for both logins.
